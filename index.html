@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Thiink Månadsrapport — Mar/Apr/Maj 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      background: #f8fafc; 
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    button { font-family: inherit; }
+    #root { max-width: 600px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+const { useState } = React;
+
+// ╔═══════════════════════════════════════════════════════╗
+// ║  THIINK MONTHLY REPORT — COMPLETE — Mar/Apr/Maj 2026 ║
+// ║  QA-verified against all three standalone mockups      ║
+// ╚═══════════════════════════════════════════════════════╝
+
+// ── 3-month data ──
+const DATA = {
+  mar: {
+    key: "mar", label: "Mars 2026", short: "Mar",
+    flow: {
+      grid: { purchased: 1210, sold: 148 },
+      solar: { produced: 480, selfConsumed: 280, directUse: 170, viaBattery: 110, excessSold: 58 },
+      battery: { chargeGrid: 350, chargeSolar: 110, discharge: 438, selfConsumed: 348, sold: 90, loss: 22, costCharge: 380, revDischarge: 520, savings: 680 },
+      ev: { total: 385, chargers: [
+        { emoji: "🟢", label: "Zappi", total: 225, solarDirect: 22, viaBattery: 18 },
+        { emoji: "🔵", label: "Easee", total: 160, solarDirect: 14, viaBattery: 12 },
+      ]},
+      consumers: [
+        { emoji: "🔥", label: "Värmepump", total: 620, solarDirect: 55, viaBattery: 45 },
+        { emoji: "🚿", label: "Varmvattenberedare", total: 210, solarDirect: 18, viaBattery: 12 },
+        { emoji: "♨️", label: "Spabad", total: 250, solarDirect: 20, viaBattery: 15 },
+        { emoji: "🏠", label: "Hushållsel", total: 435, solarDirect: 41, viaBattery: 8 },
+      ],
+      sold: { arbitrage: 90, solar: 58, total: 148 },
+    },
+    bill: {
+      grid: { lines: [
+        { id: "sub", label: "Abonnemang 20A", exkl: 459.90, detail: "5 415 kr/år", explain: "Fast månadsavgift för din elnätsanslutning. Samma belopp varje månad oavsett förbrukning." },
+        { id: "tax", label: "Energiskatt", exkl: 435.60, detail: "1 210 kWh × 36,00 öre/kWh", explain: "Statlig punktskatt på all förbrukad el. Samma nivå för alla hushåll i Sverige." },
+        { id: "transfer", label: "Överföringsavgift", exkl: 228.69, detail: "1 210 kWh × 18,90 öre/kWh", explain: "Avgift per kWh för att transportera elen genom elnätet till ditt hus." },
+        { id: "peak", label: "Effekttariff", exkl: 723.60, detail: "10,80 kW × 67 kr/kW", explain: "Din högsta effekttopp under månaden bestämmer denna kostnad. Ju jämnare förbrukning desto lägre.", hasPeakViz: true },
+        { id: "nat", label: "Nätnytta för såld solel", exkl: -8.50, detail: "Momsfri ersättning", explain: "Ersättning för att du matar in el på nätet och minskar nätförlusterna i ditt område.", vatFree: true },
+      ]},
+      buy: { lines: [
+        { id: "spot", label: "Elpris (spot)", exkl: 710.47, detail: "1 210 kWh × 58,72 öre/kWh snitt", explain: "Timpriset på elbörsen Nord Pool, viktat med din förbrukning per timme." },
+        { id: "var", label: "Rörliga kostnader", exkl: 39.20, detail: "1 210 kWh × 3,24 öre/kWh", explain: "Elhandlarens påslag per kWh. Täcker certifikat och balansansvar." },
+        { id: "fix", label: "Fast påslag", exkl: 33.88, detail: "1 210 kWh × 2,80 öre/kWh", explain: "Elhandlarens fasta påslag per kWh. Del av ditt avtal." },
+      ]},
+      sell: { lines: [
+        { id: "sspot", label: "Spotpris solelproduktion", exkl: -121.36, detail: "148 kWh × 0,82 kr/kWh snitt", explain: "Du får betalt för din sålda solel till marknadens spotpris vid den timme du matade in." },
+        { id: "sextra", label: "Extra ersättning", exkl: -14.80, detail: "148 kWh × 10 öre/kWh", explain: "Tillägg från din elhandlare utöver spotpriset. Ingår i ditt avtal." },
+        { id: "smikro", label: "Mikroproducentavdrag", exkl: 5.92, detail: "148 kWh × 4 öre/kWh", explain: "Liten administrativ avgift för mikroproducenter.", moms: 7.40 },
+      ]},
+      peak: { kw: 10.80, rate: 67, tops: [{ kw: 10.80, d: "5/3", t: "07–08" }, { kw: 10.65, d: "12/3", t: "07–08" }, { kw: 10.52, d: "19/3", t: "18–19" }] },
+    },
+    savings: {
+      totalSaving: 1420, withoutThiink: 4220, withThiink: 2800,
+      buy: { yourSpot: 0.45, se3Spot: 0.587 }, sell: { yourPrice: 0.82, se3Price: 0.587, kWh: 148, extra: 35 },
+      peak: { actual: 10.80, withoutThiink: 15.5, rate: 67, saving: 315, active: true },
+      ev: { totalKwh: 385, avgChargePrice: 0.42, se3Price: 0.587, solarKwh: 66, solarPct: 17, saving: 56, chargers: "Zappi + Easee" },
+      solar: { selfConsumedValue: 520, soldValue: 136, curtailedKwh: 0, curtailedHours: 0, curtailedSavedKr: 0 },
+    },
+  },
+  apr: {
+    key: "apr", label: "April 2026", short: "Apr",
+    flow: {
+      grid: { purchased: 780, sold: 425 },
+      solar: { produced: 1100, selfConsumed: 480, directUse: 320, viaBattery: 160, excessSold: 195 },
+      battery: { chargeGrid: 280, chargeSolar: 160, discharge: 420, selfConsumed: 290, sold: 130, loss: 20, costCharge: 220, revDischarge: 410, savings: 820 },
+      ev: { total: 415, chargers: [
+        { emoji: "🟢", label: "Zappi", total: 245, solarDirect: 48, viaBattery: 25 },
+        { emoji: "🔵", label: "Easee", total: 170, solarDirect: 32, viaBattery: 16 },
+      ]},
+      consumers: [
+        { emoji: "🔥", label: "Värmepump", total: 320, solarDirect: 85, viaBattery: 60 },
+        { emoji: "🚿", label: "Varmvattenberedare", total: 195, solarDirect: 30, viaBattery: 22 },
+        { emoji: "♨️", label: "Spabad", total: 260, solarDirect: 35, viaBattery: 25 },
+        { emoji: "🏠", label: "Hushållsel", total: 390, solarDirect: 90, viaBattery: 12 },
+      ],
+      sold: { arbitrage: 230, solar: 195, total: 425 },
+    },
+    bill: {
+      grid: { lines: [
+        { id: "sub", label: "Abonnemang 20A", exkl: 459.90, detail: "5 415 kr/år", explain: "Fast månadsavgift för din elnätsanslutning." },
+        { id: "tax", label: "Energiskatt", exkl: 280.80, detail: "780 kWh × 36,00 öre/kWh", explain: "Statlig punktskatt på all förbrukad el." },
+        { id: "transfer", label: "Överföringsavgift", exkl: 147.42, detail: "780 kWh × 18,90 öre/kWh", explain: "Avgift per kWh för transport genom elnätet." },
+        { id: "nat", label: "Nätnytta för såld solel", exkl: -18.50, detail: "Momsfri ersättning", explain: "Ersättning för inmatad el som minskar nätförluster.", vatFree: true },
+      ]},
+      buy: { lines: [
+        { id: "spot", label: "Elpris (spot)", exkl: 366.60, detail: "780 kWh × 47,00 öre/kWh snitt", explain: "Timpriset på elbörsen Nord Pool." },
+        { id: "var", label: "Rörliga kostnader", exkl: 25.27, detail: "780 kWh × 3,24 öre/kWh", explain: "Elhandlarens påslag per kWh." },
+        { id: "fix", label: "Fast påslag", exkl: 21.84, detail: "780 kWh × 2,80 öre/kWh", explain: "Elhandlarens fasta påslag per kWh." },
+      ]},
+      sell: { lines: [
+        { id: "sspot", label: "Spotpris solelproduktion", exkl: -289.00, detail: "425 kWh × 0,68 kr/kWh snitt", explain: "Betalt för din sålda solel vid inmatningstidpunkt." },
+        { id: "sextra", label: "Extra ersättning", exkl: -42.50, detail: "425 kWh × 10 öre/kWh", explain: "Tillägg från din elhandlare." },
+        { id: "smikro", label: "Mikroproducentavdrag", exkl: 17.00, detail: "425 kWh × 4 öre/kWh", explain: "Administrativ avgift för mikroproducenter.", moms: 21.25 },
+      ]},
+      peak: { kw: 0, rate: 67, tops: [] },
+    },
+    savings: {
+      totalSaving: 1180, withoutThiink: 2780, withThiink: 1600,
+      buy: { yourSpot: 0.35, se3Spot: 0.47 }, sell: { yourPrice: 0.68, se3Price: 0.47, kWh: 425, extra: 89 },
+      peak: { actual: 0, withoutThiink: 0, rate: 67, saving: 0, active: false },
+      ev: { totalKwh: 415, avgChargePrice: 0.30, se3Price: 0.47, solarKwh: 121, solarPct: 29, saving: 71, chargers: "Zappi + Easee" },
+      solar: { selfConsumedValue: 620, soldValue: 332, curtailedKwh: 35, curtailedHours: 8, curtailedSavedKr: 5 },
+    },
+  },
+  maj: {
+    key: "maj", label: "Maj 2026", short: "Maj",
+    flow: {
+      grid: { purchased: 750, sold: 548 },
+      solar: { produced: 1350, selfConsumed: 520, directUse: 360, viaBattery: 160, excessSold: 228 },
+      battery: { chargeGrid: 310, chargeSolar: 160, discharge: 450, selfConsumed: 290, sold: 160, loss: 20, costCharge: 380, revDischarge: 620, savings: 960 },
+      ev: { total: 445, chargers: [
+        { emoji: "🟢", label: "Zappi", total: 260, solarDirect: 55, viaBattery: 28 },
+        { emoji: "🔵", label: "Easee", total: 185, solarDirect: 38, viaBattery: 18 },
+      ]},
+      consumers: [
+        { emoji: "🔥", label: "Värmepump", total: 280, solarDirect: 95, viaBattery: 55 },
+        { emoji: "🚿", label: "Varmvattenberedare", total: 190, solarDirect: 32, viaBattery: 20 },
+        { emoji: "♨️", label: "Spabad", total: 265, solarDirect: 38, viaBattery: 28 },
+        { emoji: "🏠", label: "Hushållsel", total: 420, solarDirect: 102, viaBattery: 11 },
+      ],
+      sold: { arbitrage: 320, solar: 228, total: 548 },
+    },
+    bill: {
+      grid: { lines: [
+        { id: "sub", label: "Abonnemang 20A", exkl: 459.90, detail: "5 415 kr/år", explain: "Fast månadsavgift för din elnätsanslutning." },
+        { id: "tax", label: "Energiskatt", exkl: 270.00, detail: "750 kWh × 36,00 öre/kWh", explain: "Statlig punktskatt på all förbrukad el." },
+        { id: "transfer", label: "Överföringsavgift", exkl: 141.75, detail: "750 kWh × 18,90 öre/kWh", explain: "Avgift per kWh för transport genom elnätet." },
+        { id: "nat", label: "Nätnytta för såld solel", exkl: -22.00, detail: "Momsfri ersättning", explain: "Ersättning för inmatad el.", vatFree: true },
+      ]},
+      buy: { lines: [
+        { id: "spot", label: "Elpris (spot)", exkl: 615.00, detail: "750 kWh × 82,00 öre/kWh snitt", explain: "Timpriset på elbörsen Nord Pool." },
+        { id: "var", label: "Rörliga kostnader", exkl: 24.30, detail: "750 kWh × 3,24 öre/kWh", explain: "Elhandlarens påslag per kWh." },
+        { id: "fix", label: "Fast påslag", exkl: 21.00, detail: "750 kWh × 2,80 öre/kWh", explain: "Elhandlarens fasta påslag per kWh." },
+      ]},
+      sell: { lines: [
+        { id: "sspot", label: "Spotpris solelproduktion", exkl: -646.64, detail: "548 kWh × 1,18 kr/kWh snitt", explain: "Betalt för din sålda solel vid inmatningstidpunkt." },
+        { id: "sextra", label: "Extra ersättning", exkl: -54.80, detail: "548 kWh × 10 öre/kWh", explain: "Tillägg från din elhandlare." },
+        { id: "smikro", label: "Mikroproducentavdrag", exkl: 21.92, detail: "548 kWh × 4 öre/kWh", explain: "Administrativ avgift för mikroproducenter.", moms: 27.40 },
+      ]},
+      peak: { kw: 0, rate: 67, tops: [] },
+    },
+    savings: {
+      totalSaving: 1640, withoutThiink: 3540, withThiink: 1900,
+      buy: { yourSpot: 0.62, se3Spot: 0.82 }, sell: { yourPrice: 1.18, se3Price: 0.82, kWh: 548, extra: 197 },
+      peak: { actual: 0, withoutThiink: 0, rate: 67, saving: 0, active: false },
+      ev: { totalKwh: 445, avgChargePrice: 0.55, se3Price: 0.82, solarKwh: 139, solarPct: 31, saving: 120, chargers: "Zappi + Easee" },
+      solar: { selfConsumedValue: 780, soldValue: 701, curtailedKwh: 65, curtailedHours: 14, curtailedSavedKr: 11 },
+    },
+  },
+};
+
+// History for charts
+const costHist = [
+  { label: "Sep", grid: 2420, buy: 1680, sell: -150, saving: 1200 },
+  { label: "Okt", grid: 2650, buy: 2010, sell: -120, saving: 1680 },
+  { label: "Nov", grid: 2880, buy: 2350, sell: -80, saving: 2100 },
+  { label: "Dec", grid: 3050, buy: 2680, sell: -65, saving: 2800 },
+  { label: "Jan", grid: 3216, buy: 2892, sell: -75, saving: 2340 },
+  { label: "Feb", grid: 2900, buy: 2450, sell: -95, saving: 1950 },
+  { label: "Mar", grid: 2301, buy: 979, sell: -129, saving: 1420 },
+  { label: "Apr", grid: 1092, buy: 517, sell: -310, saving: 1180 },
+  { label: "Maj", grid: 1068, buy: 825, sell: -674, saving: 1640 },
+];
+const y2025sav = costHist.slice(0, 4).reduce((s, h) => s + h.saving, 0);
+
+const MK = ["Jan","Feb","Mar","Apr","Maj","Jun","Jul","Aug","Sep","Okt","Nov","Dec"];
+const MKL = ["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
+const activeM = { mar: true, apr: true, maj: true };
+
+const IM = {
+  grid: { provider: "Habo Energi", type: "Elnät", contract: "N20 (20A)", icon: "⚡", color: "#1e293b" },
+  buy: { provider: "Jönköping Energi", type: "Elhandel köp", contract: "Kvartspris", icon: "🔌", color: "#3b82f6" },
+  sell: { provider: "Jönköping Energi", type: "Elhandel sälj", icon: "☀️", color: "#16a34a" },
+};
+const CL = { grid: "#ef4444", solar: "#eab308", battery: "#22c55e", sold: "#8b5cf6", house: "#f59e0b", ev: "#06b6d4" };
+
+function fk(v) { return Math.round(v).toLocaleString("sv-SE"); }
+function fd(v) { return v.toFixed(2).replace(".", ","); }
+function fo(v) { return v.toFixed(3).replace(".", ","); }
+function calcInv(lines) { let s = 0, vf = 0; lines.forEach(l => { if (l.vatFree) vf += l.exkl; else s += l.exkl; }); const m = s * 0.25; return { subExkl: s, moms: m, vatFreeTotal: vf, total: s + m + vf }; }
+function yExkl(b) { return b.yourSpot + 0.0604 + 0.189 + 0.36; }
+function sExkl(b) { return b.se3Spot + 0.0604 + 0.189 + 0.36; }
+
+// ── Shared UI (standardized sizes) ──
+function BarL({ segs, h = 10, fs = 10 }) { let t = 0; segs.forEach(s => t += Math.max(0, s.v)); if (!t) return null; return (<div><div style={{ display: "flex", height: h, borderRadius: 5, overflow: "hidden", gap: 1 }}>{segs.map((s, i) => s.v <= 0 ? null : <div key={i} style={{ width: (s.v / t * 100) + "%", background: s.c, opacity: s.o || 1 }} />)}</div><div style={{ display: "flex", gap: 1, marginTop: 3 }}>{segs.map((s, i) => s.v <= 0 ? null : <div key={i} style={{ width: (s.v / t * 100) + "%", fontSize: fs, color: s.c, fontWeight: 500, overflow: "hidden", whiteSpace: "nowrap" }}>{s.icon} {s.label}</div>)}</div></div>); }
+function Bar({ segs, h = 10 }) { let t = 0; segs.forEach(s => t += Math.max(0, s.v)); if (!t) return null; return (<div style={{ display: "flex", height: h, borderRadius: 5, overflow: "hidden", gap: 1 }}>{segs.map((s, i) => s.v <= 0 ? null : <div key={i} style={{ width: (s.v / t * 100) + "%", background: s.c, opacity: s.o || 1 }} />)}</div>); }
+function Chev({ open }) { return <span style={{ fontSize: 11, color: "#bbb", display: "inline-block", transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform .15s" }}>▼</span>; }
+
+// ══════════════════════════════════
+// FLOW TAB
+// ══════════════════════════════════
+function FlowTab({ d }) {
+  const [mode, setMode] = useState("kWh");
+  const [exp, setExp] = useState(null);
+  const f = d.flow; const kr = mode === "kr";
+  let tH = 0, tSD = 0, tVB = 0, tS = 0;
+  f.consumers.forEach(c => { tH += c.total; tSD += c.solarDirect; tVB += c.viaBattery; tS += c.solarDirect + c.viaBattery; });
+  let evSD = 0, evVB = 0; f.ev.chargers.forEach(ch => { evSD += ch.solarDirect; evVB += ch.viaBattery; });
+  const evSelf = evSD + evVB;
+  const gC = calcInv(d.bill.grid.lines), bC = calcInv(d.bill.buy.lines);
+  const sCr = d.bill.sell.lines.filter(l => l.exkl < 0).reduce((s, l) => s + l.exkl, 0);
+  const sM = d.bill.sell.lines.find(l => l.moms)?.moms || 0;
+  const sT = sCr + sM; const gross = gC.total + bC.total; const net = gross + sT;
+  const buyPr = gross / f.grid.purchased;
+  const soldRev = Math.abs(sT);
+  const hCG = (tH - tS) * buyPr, evCG = (f.ev.total - evSelf) * buyPr;
+  const solSaved = f.solar.selfConsumed * buyPr;
+  const tog = id => setExp(exp === id ? null : id);
+  const batT = f.battery.chargeGrid + f.battery.chargeSolar;
+  const batLP = Math.round(f.battery.loss / batT * 100);
+  const solUse = Math.round(f.solar.selfConsumed / f.solar.produced * 100);
+
+  return (<div>
+    <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
+      {[{ c: CL.grid, l: "Elnät" },{ c: CL.solar, l: "Direkt sol" },{ c: CL.battery, l: "Via batteri" },{ c: CL.sold, l: "Såld" },{ c: CL.house, l: "Bostad" },{ c: CL.ev, l: "Elbil" }].map((x, i) => <span key={i} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#64748b" }}><span style={{ width: 8, height: 8, borderRadius: 2, background: x.c, display: "inline-block" }} />{x.l}</span>)}
+    </div>
+    <div style={{ padding: "16px 18px", borderRadius: 14, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5 }}>Visa i</div>
+        <div style={{ display: "flex", background: "#e2e8f0", borderRadius: 8, padding: 2, width: 120 }}>{["kWh", "kr"].map(m => <button key={m} onClick={() => setMode(m)} style={{ flex: 1, padding: "5px 10px", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700, background: mode === m ? "#fff" : "transparent", color: mode === m ? "#1e293b" : "#94a3b8", boxShadow: mode === m ? "0 1px 2px rgba(0,0,0,.08)" : "none" }}>{m}</button>)}</div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5 }}>{kr ? "Vad kostade elen?" : "Varifrån kom elen?"}</div><div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b" }}>{kr ? fk(gross) + " kr" : (f.grid.purchased + f.solar.selfConsumed) + " kWh"}</div></div>
+      <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>{kr ? "Bruttokostnad elnät + elhandel" : "Förbrukad el — köpt från nätet + egenanvänd sol"}</div>
+      <Bar segs={[{ v: kr ? gross : f.grid.purchased, c: CL.grid, o: 0.7 },{ v: kr ? 1 : f.solar.selfConsumed, c: CL.solar }]} h={16} />
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        <div><div style={{ fontSize: 10, color: "#94a3b8" }}>🔌 {kr ? "Köpt el" : "Elnätet"}</div><span style={{ fontSize: 16, fontWeight: 800, color: CL.grid }}>{kr ? fk(gross) : f.grid.purchased} <span style={{ fontSize: 11, fontWeight: 600 }}>{kr ? "kr" : "kWh"}</span></span>{kr && <div style={{ fontSize: 10, color: "#94a3b8" }}>{fd(buyPr)} kr/kWh snitt</div>}</div>
+        <div style={{ textAlign: "right" }}><div style={{ fontSize: 10, color: "#94a3b8" }}>☀️ {kr ? "Solel (gratis)" : "Egenanvänd sol"}</div><span style={{ fontSize: 16, fontWeight: 800, color: CL.solar }}>{kr ? "0" : f.solar.selfConsumed} <span style={{ fontSize: 11, fontWeight: 600 }}>{kr ? "kr" : "kWh"}</span></span>{kr && <div style={{ fontSize: 10, color: CL.solar }}>Sparar {fk(solSaved)} kr</div>}</div>
+      </div>
+      <div style={{ height: 1, background: "#e2e8f0", margin: "14px 0" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5 }}>{kr ? "Vart gick pengarna?" : "Vart tog elen vägen?"}</div><div style={{ fontSize: 13, fontWeight: 800, color: "#1e293b" }}>{kr ? fk(hCG + evCG) + " kr" : (tH + f.ev.total + f.sold.total) + " kWh"}</div></div>
+      <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>{kr ? "Kostnad för bostad + elbil (nätinköp)" : "Fördelning bostad, elbil och såld el"}</div>
+      <Bar segs={[{ v: kr ? hCG : tH, c: CL.house },{ v: kr ? evCG : f.ev.total, c: CL.ev },{ v: kr ? soldRev : f.sold.total, c: CL.sold }]} h={16} />
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+        <div><div style={{ fontSize: 10, color: "#94a3b8" }}>🏡 Bostad</div><span style={{ fontSize: 16, fontWeight: 800, color: CL.house }}>{kr ? fk(hCG) : tH} <span style={{ fontSize: 11, fontWeight: 600 }}>{kr ? "kr" : "kWh"}</span></span></div>
+        <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: "#94a3b8" }}>🚗 Elbil</div><span style={{ fontSize: 16, fontWeight: 800, color: CL.ev }}>{kr ? fk(evCG) : f.ev.total} <span style={{ fontSize: 11, fontWeight: 600 }}>{kr ? "kr" : "kWh"}</span></span></div>
+        <div style={{ textAlign: "right" }}><div style={{ fontSize: 10, color: "#94a3b8" }}>{kr ? "⚡ Intäkt" : "⚡ Såld"}</div>{kr ? <span style={{ fontSize: 16, fontWeight: 800, color: "#16a34a" }}>+{fk(soldRev)} <span style={{ fontSize: 11, fontWeight: 600 }}>kr</span></span> : <span style={{ fontSize: 16, fontWeight: 800, color: CL.sold }}>{f.sold.total} <span style={{ fontSize: 11, fontWeight: 600 }}>kWh</span></span>}</div>
+      </div>
+      {kr && <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 10, background: "#fff", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Nettokostnad</span><span style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>{fk(net)} <span style={{ fontSize: 13, fontWeight: 600 }}>kr</span></span></div>}
+    </div>
+    <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, paddingLeft: 2, marginTop: 14, marginBottom: 6 }}>Klicka för detaljer</div>
+    {/* Bostad */}
+    <div style={{ borderRadius: 12, border: "1.5px solid " + CL.house + "30", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+      <div onClick={() => tog("h")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}><span style={{ fontSize: 22 }}>🏡</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Bostad</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>{f.consumers.map(c => c.label).join(" · ")}</div></div><span style={{ fontSize: 14, fontWeight: 800, color: CL.house }}>{kr ? fk(hCG) + " kr" : tH + " kWh"}</span><Chev open={exp === "h"} /></div>
+      {exp === "h" && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f5f5f5" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", margin: "10px 0 6px" }}>Energikällor</div>
+        <BarL h={8} segs={[{ v: tH - tS, c: CL.grid, o: 0.5, icon: "🔌", label: (tH - tS) + " kWh" },{ v: tSD, c: CL.solar, icon: "☀️", label: tSD + " kWh" },{ v: tVB, c: CL.battery, icon: "🔋", label: tVB + " kWh" }]} />
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", margin: "12px 0 6px" }}>Förbrukare</div>
+        {f.consumers.map((c, i) => { const gk = c.total - c.solarDirect - c.viaBattery; const pct = Math.round(c.total / tH * 100); return (
+          <div key={i} style={{ padding: "6px 0", borderBottom: i < f.consumers.length - 1 ? "1px solid #f7f7f7" : "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}><span style={{ fontSize: 11.5, fontWeight: 600, color: "#1e293b" }}>{c.emoji} {c.label}</span><span style={{ fontSize: 11.5, color: "#475569" }}>{kr ? fk(gk * buyPr) + " kr" : c.total + " kWh"} ({pct}%)</span></div>
+            <BarL h={6} fs={9} segs={[{ v: gk, c: CL.grid, o: 0.5, icon: "🔌", label: gk + "" },{ v: c.solarDirect, c: CL.solar, icon: "☀️", label: c.solarDirect + "" },{ v: c.viaBattery, c: CL.battery, icon: "🔋", label: c.viaBattery + "" }]} />
+          </div>); })}
+      </div>}
+    </div>
+    {/* EV */}
+    <div style={{ borderRadius: 12, border: "1.5px solid " + CL.ev + "30", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+      <div onClick={() => tog("ev")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}><span style={{ fontSize: 22 }}>🚗</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Elbilsladdning</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>{f.ev.chargers.map(c => c.label).join(" + ")}</div></div><span style={{ fontSize: 14, fontWeight: 800, color: CL.ev }}>{kr ? fk(evCG) + " kr" : f.ev.total + " kWh"}</span><Chev open={exp === "ev"} /></div>
+      {exp === "ev" && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f5f5f5" }}>
+        {f.ev.chargers.map((ch, i) => { const gk = ch.total - ch.solarDirect - ch.viaBattery; const pct = Math.round(ch.total / f.ev.total * 100); return (
+          <div key={i} style={{ padding: "6px 0", borderBottom: i < f.ev.chargers.length - 1 ? "1px solid #f7f7f7" : "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}><span style={{ fontSize: 11.5, fontWeight: 600 }}>{ch.emoji} {ch.label}</span><span style={{ fontSize: 11.5, color: "#475569" }}>{ch.total} kWh ({pct}%)</span></div>
+            <BarL h={6} fs={9} segs={[{ v: gk, c: CL.grid, o: 0.5, icon: "🔌", label: gk + "" },{ v: ch.solarDirect, c: CL.solar, icon: "☀️", label: ch.solarDirect + "" },{ v: ch.viaBattery, c: CL.battery, icon: "🔋", label: ch.viaBattery + "" }]} />
+          </div>); })}
+      </div>}
+    </div>
+    {/* Såld */}
+    <div style={{ borderRadius: 12, border: "1.5px solid " + CL.sold + "30", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+      <div onClick={() => tog("s")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}><span style={{ fontSize: 22 }}>⚡</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Såld el</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>Tillbaka till nätet</div></div>{kr ? <span style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>+{fk(soldRev)} kr</span> : <span style={{ fontSize: 14, fontWeight: 800, color: CL.sold }}>{f.sold.total} kWh</span>}<Chev open={exp === "s"} /></div>
+      {exp === "s" && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f5f5f5" }}><div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", margin: "10px 0 6px" }}>Varifrån kom den sålda elen?</div><BarL h={8} segs={[{ v: f.sold.arbitrage, c: CL.battery, icon: "🔋", label: "Batteri " + f.sold.arbitrage + " kWh" },{ v: f.sold.solar, c: CL.solar, icon: "☀️", label: "Sol " + f.sold.solar + " kWh" }]} /></div>}
+    </div>
+    {/* Sol */}
+    <div style={{ borderRadius: 12, border: "1.5px solid " + CL.solar + "30", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+      <div onClick={() => tog("sol")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}><span style={{ fontSize: 22 }}>☀️</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Solceller</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>Total produktion</div></div><span style={{ fontSize: 14, fontWeight: 800, color: CL.solar }}>{kr ? "Sparar " + fk(solSaved) + " kr" : f.solar.produced + " kWh"}</span><Chev open={exp === "sol"} /></div>
+      {exp === "sol" && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f5f5f5" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", margin: "10px 0 6px" }}>Vart tog solelen vägen?</div>
+        <BarL h={10} segs={[{ v: f.solar.directUse, c: CL.solar, icon: "☀️", label: "Direkt " + f.solar.directUse },{ v: f.solar.viaBattery, c: CL.battery, icon: "🔋", label: "Batteri " + f.solar.viaBattery },{ v: f.solar.excessSold, c: CL.sold, icon: "⚡", label: "Såld " + f.solar.excessSold }]} />
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          {[{ l: "Produktion", v: f.solar.produced + " kWh", c: CL.solar },{ l: "Egenanvänt", v: f.solar.selfConsumed + " kWh", c: CL.solar },{ l: "Nyttjandegrad", v: solUse + "%", c: CL.solar }].map((m, i) => (
+            <div key={i} style={{ flex: 1, padding: 7, borderRadius: 8, background: "#f8fafc", textAlign: "center" }}><div style={{ fontSize: 9, color: "#94a3b8", textTransform: "uppercase" }}>{m.l}</div><div style={{ fontSize: 12, fontWeight: 700, color: m.c }}>{m.v}</div></div>
+          ))}
+        </div>
+        {kr && <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: "#eab30808", border: "1px solid #eab30818" }}><div style={{ fontSize: 11, color: CL.solar, lineHeight: 1.5 }}>☀️ Egenanvänd solel sparade <strong>{fk(solSaved)} kr</strong> — el du inte behövde köpa från nätet.</div></div>}
+      </div>}
+    </div>
+    {/* Batteri */}
+    <div style={{ borderRadius: 12, border: "1.5px solid " + CL.battery + "30", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+      <div onClick={() => tog("b")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}><span style={{ fontSize: 22 }}>🔋</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Batteri</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>Pylontech 20kWh</div></div><span style={{ fontSize: 11, fontWeight: 700, color: CL.battery, background: "#22c55e12", padding: "3px 10px", borderRadius: 6 }}>{kr ? "Besparing " + fk(f.battery.savings) + " kr" : batT + " in / " + f.battery.discharge + " ut"}</span><Chev open={exp === "b"} /></div>
+      {exp === "b" && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f5f5f5" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+          <div><div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>Laddades med</div><BarL h={8} segs={[{ v: f.battery.chargeGrid, c: CL.grid, o: 0.6, icon: "🔌", label: f.battery.chargeGrid + "" },{ v: f.battery.chargeSolar, c: CL.solar, icon: "☀️", label: f.battery.chargeSolar + "" }]} /></div>
+          <div><div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>Användes till</div><BarL h={8} segs={[{ v: f.battery.selfConsumed, c: CL.battery, icon: "🏠", label: f.battery.selfConsumed + "" },{ v: f.battery.sold, c: CL.sold, icon: "⚡", label: f.battery.sold + "" }]} /></div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          {[{ l: "Laddning", v: batT + " kWh", c: CL.battery },{ l: "Urladdning", v: f.battery.discharge + " kWh", c: CL.battery },{ l: "Förlust", v: f.battery.loss + " kWh (" + batLP + "%)", c: CL.grid }].map((m, i) => (
+            <div key={i} style={{ flex: 1, padding: 7, borderRadius: 8, background: "#f8fafc", textAlign: "center" }}><div style={{ fontSize: 9, color: "#94a3b8", textTransform: "uppercase" }}>{m.l}</div><div style={{ fontSize: 12, fontWeight: 700, color: m.c }}>{m.v}</div></div>
+          ))}
+        </div>
+        {kr && <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "#22c55e06", border: "1px solid #22c55e20" }}><div style={{ fontSize: 11, fontWeight: 600, color: CL.battery, marginBottom: 4 }}>💰 Batteriekonomi</div><div style={{ fontSize: 12, color: "#475569", lineHeight: 1.6 }}>Laddkostnad: <strong>{fk(f.battery.costCharge)} kr</strong> · Intäkt: <strong>{fk(f.battery.revDischarge)} kr</strong><br />Besparing: <strong>{fk(f.battery.savings)} kr</strong></div></div>}
+      </div>}
+    </div>
+  </div>);
+}
+
+// ══════════════════════════════════
+// BILL TAB (R1-R8 fixed)
+// ══════════════════════════════════
+function BillTab({ d, histIdx }) {
+  const [openCard, setOpenCard] = useState(null);
+  const [explains, setExplains] = useState({});
+  const [mm, setMm] = useState({});
+  const gC = calcInv(d.bill.grid.lines), bC = calcInv(d.bill.buy.lines);
+  const sCr = d.bill.sell.lines.filter(l => l.exkl < 0).reduce((s, l) => s + l.exkl, 0);
+  const sMom = d.bill.sell.lines.find(l => l.moms)?.moms || 0;
+  const sT = sCr + sMom; const gross = gC.total + bC.total; const sA = Math.abs(sT); const net = gross + sT;
+  const gPct = Math.round(gC.total / gross * 100), bPct = 100 - gPct;
+  const sPct = Math.round(sA / gross * 100);
+  const abon = 459.90 * 1.25; const cpp = (net - abon) / d.flow.grid.purchased;
+
+
+  const invs = [
+    { key: "grid", ...IM.grid, total: gC.total, calc: gC },
+    { key: "buy", ...IM.buy, total: bC.total, calc: bC },
+    { key: "sell", ...IM.sell, contract: d.flow.sold.total + " kWh såld", total: sT },
+  ];
+
+  function InvLine({ l, momsMode }) {
+    const neg = l.exkl < 0; const ae = Math.abs(l.exkl); const ai = l.vatFree ? ae : ae * 1.25;
+    const prim = momsMode === "inkl" ? ai : ae; const sec = momsMode === "inkl" ? ae : ai;
+    const secLab = momsMode === "inkl" ? "exkl moms" : "inkl moms";
+    return (<div style={{ borderBottom: "1px solid #f1f5f9" }}>
+      <div onClick={() => setExplains(p => ({ ...p, [l.id]: !p[l.id] }))} style={{ display: "flex", alignItems: "center", padding: "10px 0", cursor: "pointer", userSelect: "none" }}>
+        <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ fontSize: 12, fontWeight: 600, color: neg ? "#16a34a" : "#1e293b" }}>{l.label}</span><span style={{ fontSize: 10, color: "#cbd5e1" }}>ⓘ</span></div>{l.detail && <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>{l.detail}</div>}</div>
+        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}><div style={{ fontSize: 13, fontWeight: 700, color: neg ? "#16a34a" : "#1e293b" }}>{neg ? "−" : ""}{fk(prim)} kr</div>{!l.vatFree && <div style={{ fontSize: 9, color: "#b0b8c4" }}>{secLab} {neg ? "−" : ""}{fk(sec)}</div>}{l.vatFree && <div style={{ fontSize: 9, color: "#b0b8c4" }}>momsfri</div>}</div>
+      </div>
+      {explains[l.id] && <div style={{ padding: "0 0 10px", marginTop: -4 }}><div style={{ padding: "8px 12px", borderRadius: 8, background: "#f0f9ff", border: "1px solid #bae6fd", fontSize: 11, color: "#0369a1", lineHeight: 1.5 }}>{l.explain}</div></div>}
+    </div>);
+  }
+
+  return (<div>
+    {/* Summary */}
+    <div style={{ padding: "16px 18px", borderRadius: 14, background: "#f8fafc", border: "1px solid #e2e8f0", marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>Dina elräkningar i {d.label.toLowerCase()}</div>
+      {invs.map((inv, i) => { const neg = inv.total < 0; const abs = Math.abs(inv.total); return (
+        <div key={inv.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: i < 2 ? "1px solid #e2e8f0" : "none" }}>
+          <span style={{ fontSize: 18 }}>{inv.icon}</span><div style={{ flex: 1 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: "#1e293b" }}>{inv.type}</div><div style={{ fontSize: 10, color: "#94a3b8" }}>{inv.provider}</div></div>
+          <div style={{ textAlign: "right" }}><span style={{ fontSize: 15, fontWeight: 800, color: neg ? "#16a34a" : "#1e293b", fontVariantNumeric: "tabular-nums" }}>{neg ? "−" : ""}{fk(abs)} kr</span><div style={{ fontSize: 8, color: "#b0b8c4" }}>inkl moms</div></div>
+        </div>); })}
+      {/* Bars */}
+      <div style={{ marginTop: 16 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}><span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Att betala</span><span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>{fk(gross)} kr</span></div>
+        <div style={{ display: "flex", height: 14, borderRadius: 5, overflow: "hidden", gap: 1.5 }}><div style={{ width: gPct + "%", background: "#1e293b", borderRadius: 3, opacity: 0.7 }} /><div style={{ width: bPct + "%", background: "#3b82f6", borderRadius: 3, opacity: 0.7 }} /></div>
+        <div style={{ display: "flex", gap: 1.5, marginTop: 3 }}><div style={{ width: gPct + "%" }}><div style={{ fontSize: 9, color: "#1e293b", fontWeight: 600 }}>{fk(gC.total)} kr</div><div style={{ fontSize: 8, color: "#94a3b8" }}>Elnät ({gPct}%)</div></div><div style={{ width: bPct + "%" }}><div style={{ fontSize: 9, color: "#3b82f6", fontWeight: 600 }}>{fk(bC.total)} kr</div><div style={{ fontSize: 8, color: "#94a3b8" }}>Elhandel köp ({bPct}%)</div></div></div>
+      </div>
+      <div style={{ marginTop: 14 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}><span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", textTransform: "uppercase", letterSpacing: 1 }}>Tillbaka för såld solel</span><span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a" }}>−{fk(sA)} kr</span></div>
+        <div style={{ display: "flex", height: 14, borderRadius: 5, overflow: "hidden" }}><div style={{ width: sPct + "%", background: "#16a34a", borderRadius: 3, opacity: 0.6 }} /><div style={{ width: (100 - sPct) + "%", background: "#f1f5f9", borderRadius: 3 }} /></div>
+        <div style={{ fontSize: 8, color: "#94a3b8", marginTop: 3 }}>{sPct}% av kostnaden täcks av solelsförsäljning</div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 14px", borderRadius: 10, background: "#fff", border: "1px solid #e2e8f0", marginTop: 14 }}><span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Netto att betala</span><span style={{ fontSize: 22, fontWeight: 800, color: "#1e293b" }}>{fk(net)} <span style={{ fontSize: 13, fontWeight: 600 }}>kr</span></span></div>
+    </div>
+
+    {/* FIX R1+R5+R6+R7+R8: All 3 invoice cards with full features */}
+    <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, paddingLeft: 2, marginBottom: 6 }}>Klicka för att se din faktura</div>
+    {[{ k: "grid", inv: IM.grid, lines: d.bill.grid.lines, calc: gC },{ k: "buy", inv: IM.buy, lines: d.bill.buy.lines, calc: bC }].map(({ k, inv, lines, calc }) => {
+      const open = openCard === k; const momsM = mm[k] || "exkl";
+      return (<div key={k} style={{ borderRadius: 12, border: "1.5px solid " + inv.color + "20", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+        <div onClick={() => setOpenCard(open ? null : k)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
+          <span style={{ fontSize: 22 }}>{inv.icon}</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{inv.type}</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>{inv.provider} · {inv.contract}</div></div>
+          <span style={{ fontSize: 14, fontWeight: 800, color: inv.color }}>{fk(calc.total)} <span style={{ fontSize: 10, fontWeight: 600 }}>kr inkl moms</span></span><Chev open={open} />
+        </div>
+        {open && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f0f0f0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 9, color: "#cbd5e1" }}>Klicka rad för ⓘ</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "8px 0 6px" }}><span style={{ fontSize: 9, color: "#94a3b8", marginRight: 4 }}>Visa belopp:</span>{["exkl","inkl"].map(m => <button key={m} onClick={() => setMm(p => ({ ...p, [k]: m }))} style={{ padding: "3px 8px", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: momsM === m ? 700 : 500, background: momsM === m ? "#f1f5f9" : "transparent", color: momsM === m ? "#1e293b" : "#c0c8d4", transition: "all .12s" }}>{m} moms</button>)}</div>
+          </div>
+          {lines.map(l => <InvLine key={l.id} l={l} momsMode={momsM} />)}
+          <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}><span style={{ fontSize: 11, color: "#94a3b8" }}>Subtotal exkl moms</span><span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>{fk(calc.subExkl)} kr</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}><span style={{ fontSize: 11, color: "#94a3b8" }}>Moms 25%</span><span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>{fk(calc.moms)} kr</span></div>
+            {calc.vatFreeTotal !== 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}><span style={{ fontSize: 11, color: "#94a3b8" }}>Momsfria poster</span><span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>{fk(calc.vatFreeTotal)} kr</span></div>}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 4px", borderTop: "2px solid #e2e8f0", marginTop: 4 }}><span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Att betala</span><span style={{ fontSize: 15, fontWeight: 800, color: inv.color }}>{fk(calc.total)} kr</span></div>
+          </div>
+        </div>}
+      </div>); })}
+    {/* FIX R1: Sell card */}
+    {(() => { const open = openCard === "sell"; const momsM = mm.sell || "exkl"; return (
+      <div style={{ borderRadius: 12, border: "1.5px solid " + IM.sell.color + "20", background: "#fff", overflow: "hidden", marginBottom: 14 }}>
+        <div onClick={() => setOpenCard(open ? null : "sell")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer", userSelect: "none" }}>
+          <span style={{ fontSize: 22 }}>{IM.sell.icon}</span><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Elhandel sälj</div><div style={{ fontSize: 10.5, color: "#94a3b8" }}>{IM.sell.provider} · {d.flow.sold.total} kWh såld</div></div>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>−{fk(sA)} <span style={{ fontSize: 10, fontWeight: 600 }}>kr inkl moms</span></span><Chev open={open} />
+        </div>
+        {open && <div style={{ padding: "0 14px 14px", borderTop: "1px solid #f0f0f0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 9, color: "#cbd5e1" }}>Klicka rad för ⓘ</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "8px 0 6px" }}><span style={{ fontSize: 9, color: "#94a3b8", marginRight: 4 }}>Visa belopp:</span>{["exkl","inkl"].map(m => <button key={m} onClick={() => setMm(p => ({ ...p, sell: m }))} style={{ padding: "3px 8px", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 10, fontWeight: momsM === m ? 700 : 500, background: momsM === m ? "#f1f5f9" : "transparent", color: momsM === m ? "#1e293b" : "#c0c8d4" }}>{m} moms</button>)}</div>
+          </div>
+          {d.bill.sell.lines.map(l => <InvLine key={l.id} l={l} momsMode={momsM} />)}
+          <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}><span style={{ fontSize: 11, color: "#94a3b8" }}>Ersättning exkl avdrag</span><span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>{fk(Math.abs(sCr))} kr</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}><span style={{ fontSize: 11, color: "#94a3b8" }}>Mikroproducentavdrag inkl moms</span><span style={{ fontSize: 12, fontWeight: 600, color: "#ef4444" }}>−{fd(sMom)} kr</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 4px", borderTop: "2px solid #e2e8f0", marginTop: 4 }}><span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Tillgodo</span><span style={{ fontSize: 15, fontWeight: 800, color: "#16a34a" }}>−{fk(sA)} kr</span></div>
+          </div>
+        </div>}
+      </div>); })()}
+
+    {/* FIX R2+R3+R4: Insights */}
+    <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, paddingLeft: 2, marginTop: 4, marginBottom: 6 }}>Insikter</div>
+    {/* History chart */}
+    <div style={{ padding: "14px 16px", borderRadius: 12, background: "#fff", border: "1px solid #e2e8f0", marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Elkostnad per månad</div><div style={{ fontSize: 9, color: "#94a3b8" }}>Inkl moms · Data sedan sep 2025</div></div>
+      {(() => { const slice = costHist.slice(0, histIdx + 1); const maxV = Math.max(...slice.map(h => h.grid + h.buy)); const cH = 130; return (<div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: cH, padding: "0 2px" }}>
+          {slice.map((h, i) => { const gH = Math.round((h.grid / maxV) * (cH - 20)); const buH = Math.round((h.buy / maxV) * (cH - 20)); const seH = Math.round((Math.abs(h.sell) / maxV) * (cH - 20)); const cur = i === slice.length - 1; return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <span style={{ fontSize: 8, fontWeight: 700, color: cur ? "#1e293b" : "#94a3b8" }}>{fk(h.grid + h.buy + h.sell)}</span>
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 1, opacity: cur ? 1 : 0.6 }}><div style={{ height: buH, background: "#3b82f6", borderRadius: "3px 3px 0 0" }} /><div style={{ height: gH, background: "#1e293b" }} /></div>
+              {seH > 0 && <div style={{ width: "100%", height: seH, background: "#16a34a", borderRadius: "0 0 3px 3px", marginTop: -1 }} />}
+            </div>); })}
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 4, padding: "0 2px" }}>{slice.map((h, i) => <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, fontWeight: i === slice.length - 1 ? 700 : 400, color: i === slice.length - 1 ? "#1e293b" : "#94a3b8" }}>{h.label}</div>)}</div>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 8 }}>
+          {[{ c: "#1e293b", l: "Elnät" },{ c: "#3b82f6", l: "Elhandel köp" },{ c: "#16a34a", l: "Sälj (avdrag)" }].map((x, i) => <span key={i} style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#64748b" }}><span style={{ width: 8, height: 8, borderRadius: 2, background: x.c, display: "inline-block" }} />{x.l}</span>)}
+        </div>
+      </div>); })()}
+    </div>
+    {/* Cost per kWh + Grid breakdown */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+      <div style={{ padding: "14px 14px", borderRadius: 12, background: "#fff", border: "1px solid #e2e8f0" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Snittpris per kWh</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>{fd(cpp)}</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>kr/kWh inkl moms</div>
+        <div style={{ height: 1, background: "#f1f5f9", margin: "10px 0" }} />
+        <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5 }}>Exkl. abonnemangsavgift<br />({fk(net)} − {fk(abon)}) / {fk(d.flow.grid.purchased)} kWh</div>
+      </div>
+      {(() => {
+        const elPrisExkl = d.bill.buy.lines.reduce((s, l) => s + l.exkl, 0);
+        const natExkl = d.bill.grid.lines.filter(l => !l.vatFree && l.id !== "tax").reduce((s, l) => s + l.exkl, 0);
+        const eskattExkl = d.bill.grid.lines.find(l => l.id === "tax")?.exkl || 0;
+        const totalMoms = gC.moms + bC.moms;
+        const skattTotal = eskattExkl + totalMoms;
+        const pieces = [
+          { label: "Ren elkostnad", value: elPrisExkl, color: "#3b82f6" },
+          { label: "Nätavgifter", value: natExkl, color: "#1e293b" },
+          { label: "Skatt & moms", value: skattTotal, color: "#d97706" },
+        ];
+        const pTotal = pieces.reduce((s, p) => s + p.value, 0);
+        const skattPct = Math.round(skattTotal / pTotal * 100);
+        return (
+        <div style={{ padding: "14px 14px", borderRadius: 12, background: "#fff", border: "1px solid #e2e8f0" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Vart går pengarna?</div>
+          <div style={{ display: "flex", height: 10, borderRadius: 4, overflow: "hidden", gap: 1, marginBottom: 8 }}>
+            {pieces.map((p, i) => <div key={i} style={{ width: (p.value / pTotal * 100) + "%", background: p.color }} />)}
+          </div>
+          {pieces.map((p, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: p.color, display: "inline-block" }} /><span style={{ fontSize: 9.5, color: "#475569" }}>{p.label}</span></div>
+              <span style={{ fontSize: 9.5, fontWeight: 600, color: "#475569" }}>{Math.round(p.value / pTotal * 100)}%</span>
+            </div>))}
+          <div style={{ height: 1, background: "#f1f5f9", margin: "8px 0" }} />
+          <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.5 }}>{skattPct}% av din totala elräkning är skatter och moms.</div>
+        </div>);
+      })()}
+    </div>
+  </div>);
+}
+
+// ══════════════════════════════════
+// SAVINGS TAB (S1-S4 fixed)
+// ══════════════════════════════════
+function SavingsTab({ d, histIdx }) {
+  const [expCard, setExpCard] = useState(null);
+  const [showCalc, setShowCalc] = useState(false);
+  const s = d.savings;
+  const y2026sav = costHist.slice(4, histIdx + 1).reduce((a, h) => a + h.saving, 0);
+  const yE = yExkl(s.buy), sE = sExkl(s.buy), yI = yE * 1.25, sI = sE * 1.25;
+  const sPct = Math.round((1 - s.buy.yourSpot / s.buy.se3Spot) * 100);
+  const tPct = Math.round((1 - yI / sI) * 100);
+  const tKr = Math.round((sI - yI) * d.flow.grid.purchased);
+  const sellP = Math.round((s.sell.yourPrice / s.sell.se3Price - 1) * 100);
+  const evPct = Math.round((1 - s.ev.avgChargePrice / s.ev.se3Price) * 100);
+
+  const steps = [];
+  steps.push({ id: "buy", hl: "Du köpte elen " + sPct + "% billigare", kr: tKr, c: "#3b82f6", icon: "🔌", label: "Spotprisoptimering" });
+  steps.push({ id: "sell", hl: "Du sålde elen " + sellP + "% dyrare", kr: s.sell.extra, c: "#16a34a", icon: "☀️", label: "Säljprisoptimering" });
+  if (s.peak.active) steps.push({ id: "peak", hl: "Effekttariffen sänktes med " + fk(s.peak.saving) + " kr", kr: s.peak.saving, c: "#f97316", icon: "⚡", label: "Effekttariff-kapning" });
+  steps.push({ id: "ev", hl: "Du laddade bilarna " + evPct + "% billigare", kr: s.ev.saving, c: "#06b6d4", icon: "🚗", label: "Smart elbilsladdning" });
+  const solKr = s.totalSaving - steps.reduce((a, st) => a + st.kr, 0);
+  steps.push({ id: "solar", hl: "Solelen sparade " + fk(solKr) + " kr", kr: solKr, c: "#eab308", icon: "🌞", label: "Solens nettovärde" });
+
+  let run = 0;
+  const savSlice = costHist.slice(0, histIdx + 1);
+  const maxSav = Math.max(...savSlice.map(h => h.saving));
+  let cum = 0; const cumArr = savSlice.map(h => { cum += h.saving; return cum; });
+  const maxCum = cumArr[cumArr.length - 1];
+
+  return (<div>
+    {/* Hero */}
+    <div style={{ padding: "22px 20px 16px", borderRadius: 16, background: "linear-gradient(135deg, #14532d 0%, #166534 50%, #15803d 100%)", marginBottom: 16, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#86efac", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 14, position: "relative" }}>Thiink sparade dig i {d.label.toLowerCase()}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6, position: "relative" }}><span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Utan Thiink hade du betalat*</span><span style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.45)", textDecoration: "line-through" }}>~{fk(s.withoutThiink)} kr</span></div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, position: "relative" }}><span style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Med Thiink betalade du</span><span style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{fk(s.withThiink)} kr</span></div>
+      <div style={{ background: "rgba(255,255,255,0.1)", borderRadius: 12, padding: "14px 16px", position: "relative" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span style={{ fontSize: 14, fontWeight: 700, color: "#86efac" }}>Du sparade</span><span style={{ fontSize: 38, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{fk(s.totalSaving)} <span style={{ fontSize: 16, fontWeight: 600 }}>kr</span></span></div></div>
+      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 8, lineHeight: 1.4, position: "relative" }}>* Beräknat utifrån SE3-snittpris, utan batterioptimering och utan peak shaving.</div>
+      <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "10px 0", position: "relative" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", position: "relative" }}><span style={{ fontSize: 11, color: "#86efac" }}>Hittills 2026</span><span style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{fk(y2026sav)} <span style={{ fontSize: 10, fontWeight: 600 }}>kr</span></span></div>
+      {y2025sav > 0 && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4, position: "relative" }}><span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>2025 (sep–dec)</span><span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)" }}>{fk(y2025sav)} kr</span></div>}
+    </div>
+
+    {/* Timeline */}
+    <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, paddingLeft: 2, marginBottom: 4 }}>Så här sparade Thiink dina pengar</div>
+    <div style={{ fontSize: 9, color: "#b0b8c4", paddingLeft: 34, marginBottom: 8, lineHeight: 1.4 }}>Fördelningen är ungefärlig — samma kWh kan bidra till flera besparingar.</div>
+    {steps.map((st, i) => {
+      run += st.kr; const isExp = expCard === st.id; const isLast = i === steps.length - 1;
+      return (<div key={st.id} style={{ display: "flex", gap: 0 }}>
+        <div style={{ width: 32, display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}><div style={{ width: 18, height: 18, borderRadius: 9, background: st.c, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#fff", fontWeight: 700, zIndex: 1 }}>{i + 1}</div>{!isLast && <div style={{ width: 2, flex: 1, background: "#e2e8f0" }} />}</div>
+        <div style={{ flex: 1, marginBottom: 10 }}>
+          <div onClick={() => setExpCard(isExp ? null : st.id)} style={{ padding: "10px 14px", borderRadius: 10, background: "#fff", border: "1.5px solid #e2e8f0", cursor: "pointer", userSelect: "none" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}><span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{st.hl}</span><span style={{ fontSize: 14, fontWeight: 800, color: "#22c55e" }}>+{fk(st.kr)} kr</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 10, color: "#94a3b8" }}>{st.icon} {st.label}</span><span style={{ fontSize: 9, color: isLast ? "#166534" : "#94a3b8", fontWeight: isLast ? 700 : 400 }}>Summa: {fk(run)} av {fk(s.totalSaving)} kr</span></div>
+            {/* FIX S3: Buy with dual heroes + calc dropdown */}
+            {isExp && st.id === "buy" && <div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <div style={{ flex: 1, padding: "8px", borderRadius: 8, background: "#f0f9ff", textAlign: "center" }}><div style={{ fontSize: 9, color: "#3b82f6", fontWeight: 600 }}>SPOTPRIS</div><div style={{ fontSize: 20, fontWeight: 800, color: "#3b82f6" }}>−{sPct}%</div><div style={{ fontSize: 9, color: "#94a3b8" }}>{fd(s.buy.yourSpot)} vs {fd(s.buy.se3Spot)} kr/kWh</div></div>
+                <div style={{ flex: 1, padding: "8px", borderRadius: 8, background: "#f0fdf4", textAlign: "center" }}><div style={{ fontSize: 9, color: "#16a34a", fontWeight: 600 }}>TOTALT ELPRIS</div><div style={{ fontSize: 20, fontWeight: 800, color: "#16a34a" }}>−{tPct}%</div><div style={{ fontSize: 9, color: "#94a3b8" }}>{fd(yI)} vs {fd(sI)} kr/kWh</div><div style={{ fontSize: 10, fontWeight: 600, color: "#16a34a", marginTop: 2 }}>{fk(tKr)} kr sparat</div></div>
+              </div>
+              <div style={{ fontSize: 10, color: "#64748b", lineHeight: 1.4, marginBottom: 4 }}>Momsen (25%) förstärker besparingen — varje sparad krona i spotpris ger 1,25 kr i total besparing.</div>
+              <div onClick={e => { e.stopPropagation(); setShowCalc(!showCalc); }} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 0" }}><span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6" }}>Visa beräkning</span><span style={{ fontSize: 8, color: "#3b82f6", transform: showCalc ? "rotate(180deg)" : "rotate(0)", display: "inline-block", transition: "transform .15s" }}>▼</span></div>
+              {showCalc && <div style={{ padding: "6px 8px", borderRadius: 6, background: "#f8fafc", border: "1px solid #e2e8f0", marginTop: 2 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0 0 3px", borderBottom: "1px solid #e2e8f0", marginBottom: 3 }}><span style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", flex: 1 }}>Per kWh</span><span style={{ fontSize: 9, fontWeight: 700, color: "#22c55e", width: 55, textAlign: "right" }}>Du</span><span style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", width: 55, textAlign: "right" }}>SE3</span></div>
+                {[["Spotpris",fd(s.buy.yourSpot),fd(s.buy.se3Spot)],["Elhandel",fo(0.0604),fo(0.0604)],["Överföring",fo(0.189),fo(0.189)],["Energiskatt",fd(0.36),fd(0.36)]].map(([l,y,se],i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}><span style={{ fontSize: 10, color: "#64748b", flex: 1 }}>{l}</span><span style={{ fontSize: 10, color: "#475569", width: 55, textAlign: "right" }}>{y}</span><span style={{ fontSize: 10, color: "#94a3b8", width: 55, textAlign: "right" }}>{se}</span></div>)}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderTop: "1px solid #e2e8f0" }}><span style={{ fontSize: 10, fontWeight: 700, flex: 1 }}>Exkl moms</span><span style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", width: 55, textAlign: "right" }}>{fd(yE)}</span><span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", width: 55, textAlign: "right" }}>{fd(sE)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}><span style={{ fontSize: 10, color: "#64748b", flex: 1 }}>Moms 25%</span><span style={{ fontSize: 10, color: "#475569", width: 55, textAlign: "right" }}>{fd(yE*0.25)}</span><span style={{ fontSize: 10, color: "#94a3b8", width: 55, textAlign: "right" }}>{fd(sE*0.25)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderTop: "1px solid #e2e8f0" }}><span style={{ fontSize: 10, fontWeight: 700, flex: 1 }}>Totalt</span><span style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", width: 55, textAlign: "right" }}>{fd(yI)}</span><span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", width: 55, textAlign: "right" }}>{fd(sI)}</span></div>
+                <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 3, paddingTop: 4, display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 9, color: "#64748b" }}>Skillnad × {fk(d.flow.grid.purchased)} kWh</span><span style={{ fontSize: 10, fontWeight: 800, color: "#166534" }}>{fk(tKr)} kr</span></div>
+              </div>}
+            </div>}
+            {isExp && st.id === "sell" && <div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8, display: "flex", gap: 12, alignItems: "flex-end" }}><div><div style={{ fontSize: 8, color: "#94a3b8" }}>Du sålde</div><div style={{ fontSize: 18, fontWeight: 800, color: "#22c55e" }}>{fd(s.sell.yourPrice)}</div><div style={{ fontSize: 9, color: "#94a3b8" }}>kr/kWh</div></div><div style={{ fontSize: 10, color: "#94a3b8", paddingBottom: 2 }}>vs</div><div><div style={{ fontSize: 8, color: "#94a3b8" }}>SE3-snitt</div><div style={{ fontSize: 18, fontWeight: 800, color: "#94a3b8" }}>{fd(s.sell.se3Price)}</div><div style={{ fontSize: 9, color: "#94a3b8" }}>kr/kWh</div></div><div style={{ marginLeft: "auto" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#22c55e" }}>+{sellP}%</div></div></div>}
+            {isExp && st.id === "peak" && <div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8, display: "flex", gap: 8 }}><div style={{ flex: 1, padding: "6px 8px", borderRadius: 6, background: "#fef2f2", textAlign: "center" }}><div style={{ fontSize: 8, color: "#dc2626", fontWeight: 600 }}>UTAN</div><div style={{ fontSize: 16, fontWeight: 800, color: "#dc2626" }}>~{fd(s.peak.withoutThiink)}</div><div style={{ fontSize: 8, color: "#94a3b8" }}>kW → {fk(Math.round(s.peak.withoutThiink * s.peak.rate))} kr</div></div><div style={{ flex: 1, padding: "6px 8px", borderRadius: 6, background: "#f0fdf4", textAlign: "center" }}><div style={{ fontSize: 8, color: "#16a34a", fontWeight: 600 }}>MED</div><div style={{ fontSize: 16, fontWeight: 800, color: "#16a34a" }}>{fd(s.peak.actual)}</div><div style={{ fontSize: 8, color: "#94a3b8" }}>kW → {fk(Math.round(s.peak.actual * s.peak.rate))} kr</div></div></div>}
+            {isExp && st.id === "ev" && <div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8 }}><div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}><div><div style={{ fontSize: 8, color: "#94a3b8" }}>Laddpris</div><div style={{ fontSize: 18, fontWeight: 800, color: "#06b6d4" }}>{fd(s.ev.avgChargePrice)}</div><div style={{ fontSize: 9, color: "#94a3b8" }}>kr/kWh</div></div><div style={{ fontSize: 10, color: "#94a3b8", paddingBottom: 2 }}>vs SE3 {fd(s.ev.se3Price)}</div><div style={{ marginLeft: "auto", fontSize: 16, fontWeight: 800, color: "#22c55e" }}>−{evPct}%</div></div><div style={{ fontSize: 9, color: "#64748b", marginTop: 4 }}>{s.ev.totalKwh} kWh · {s.ev.solarPct}% solel · {s.ev.chargers}</div></div>}
+            {isExp && st.id === "solar" && <div style={{ marginTop: 10, borderTop: "1px solid #f1f5f9", paddingTop: 8 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 6 }}><div style={{ flex: 1, padding: "6px 8px", borderRadius: 6, background: "#fffbeb", textAlign: "center" }}><div style={{ fontSize: 8, color: "#94a3b8" }}>Undvikna inköp</div><div style={{ fontSize: 14, fontWeight: 800, color: "#d97706" }}>{fk(s.solar.selfConsumedValue)} kr</div></div><div style={{ flex: 1, padding: "6px 8px", borderRadius: 6, background: "#f0fdf4", textAlign: "center" }}><div style={{ fontSize: 8, color: "#94a3b8" }}>Såld solel</div><div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a" }}>{fk(s.solar.soldValue)} kr</div></div></div>
+              {s.solar.curtailedKwh > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 6, background: "#fef2f2", border: "1px solid #fecaca" }}><span>🛑</span><div style={{ flex: 1, fontSize: 9, color: "#64748b" }}>Strypt export {s.solar.curtailedHours}h negativt pris · {s.solar.curtailedKwh} kWh → +{s.solar.curtailedSavedKr} kr</div></div>}
+            </div>}
+          </div>
+        </div>
+      </div>); })}
+
+    {/* FIX S1: Savings chart with accumulation */}
+    <div style={{ padding: "14px 16px", borderRadius: 12, background: "#fff", border: "1px solid #e2e8f0", marginTop: 6, marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>Besparing över tid</div><div style={{ fontSize: 9, color: "#94a3b8" }}>Sedan du blev kund (sep 2025)</div></div>
+      <div style={{ position: "relative", height: 140, padding: "0 2px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 140, position: "relative", zIndex: 1 }}>
+          {savSlice.map((h, i) => { const bH = Math.round((h.saving / maxSav) * 120); const cur = i === savSlice.length - 1; return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <span style={{ fontSize: 8, fontWeight: 700, color: cur ? "#166534" : "#94a3b8" }}>{fk(h.saving)}</span>
+              <div style={{ width: "100%", height: bH, borderRadius: 4, background: cur ? "linear-gradient(to top, #16a34a, #22c55e)" : "linear-gradient(to top, #86efac, #bbf7d0)", opacity: cur ? 1 : 0.7 }} />
+            </div>); })}
+        </div>
+        <svg style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 140, pointerEvents: "none", zIndex: 2 }} viewBox={`0 0 ${savSlice.length * 100} 140`} preserveAspectRatio="none">
+          <polyline fill="none" stroke="#14532d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={savSlice.map((h, i) => { const x = i * 100 + 50; const y = 130 - (cumArr[i] / maxCum) * 110; return `${x},${y}`; }).join(" ")} />
+          {savSlice.map((h, i) => { const x = i * 100 + 50; const y = 130 - (cumArr[i] / maxCum) * 110; return <circle key={i} cx={x} cy={y} r={i === savSlice.length - 1 ? 5 : 3} fill={i === savSlice.length - 1 ? "#14532d" : "#22c55e"} stroke="#fff" strokeWidth="1.5" />; })}
+        </svg>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 4, padding: "0 2px" }}>{savSlice.map((h, i) => <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, fontWeight: i === savSlice.length - 1 ? 700 : 400, color: i === savSlice.length - 1 ? "#166534" : "#94a3b8" }}>{h.label}</div>)}</div>
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 8 }}><span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#64748b" }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "#22c55e", display: "inline-block" }} />Besparing per månad (kr)</span><span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#64748b" }}><span style={{ width: 12, height: 2, background: "#14532d", display: "inline-block", borderRadius: 1 }} />Ackumulerad (kr)</span></div>
+    </div>
+
+    {/* FIX S2: Bottom line */}
+    <div style={{ padding: "16px 18px", borderRadius: 14, background: "linear-gradient(135deg, #14532d, #166534)", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: -15, right: -15, width: 60, height: 60, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#86efac", marginBottom: 6, position: "relative" }}>Hittills 2026</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", position: "relative" }}><span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>Total besparing</span><span style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{fk(y2026sav)} <span style={{ fontSize: 14, fontWeight: 600 }}>kr</span></span></div>
+      {y2025sav > 0 && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 6, position: "relative" }}><span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>2025 (sep–dec)</span><span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>{fk(y2025sav)} kr</span></div>}
+    </div>
+  </div>);
+}
+
+// ══════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════
+function Report() {
+  const [month, setMonth] = useState("mar");
+  const [tab, setTab] = useState("flow");
+  const d = DATA[month];
+  const histMap = { mar: 6, apr: 7, maj: 8 };
+  const histIdx = histMap[month];
+
+  return (
+    <div style={{ fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", maxWidth: 600, margin: "0 auto", padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14 }}>ii</div>
+        <div><div style={{ fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Månadsrapport</div><div style={{ fontSize: 12, color: "#64748b" }}>{d.label}</div></div>
+      </div>
+      <div style={{ display: "flex", gap: 3, marginBottom: 10, background: "#f1f5f9", borderRadius: 10, padding: 3 }}>
+        {[["flow","⚡ Flöde"],["bill","💰 Räkning"],["savings","📉 Besparing"]].map(t => (
+          <div key={t[0]} onClick={() => setTab(t[0])} style={{ flex: 1, padding: "9px 8px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, textAlign: "center", cursor: "pointer", background: tab === t[0] ? "#fff" : "transparent", color: tab === t[0] ? "#1e293b" : "#94a3b8", boxShadow: tab === t[0] ? "0 1px 3px rgba(0,0,0,.08)" : "none", transition: "all .15s" }}>{t[1]}</div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 2, marginBottom: 16, padding: "0 2px" }}>
+        {MKL.map((k, i) => {
+          const isA = activeM[k]; const isC = k === month;
+          return (<button key={k} onClick={() => isA && setMonth(k)} style={{ flex: 1, padding: "6px 0", border: "none", borderRadius: 6, cursor: isA ? "pointer" : "default", fontSize: 10, fontWeight: isC ? 800 : 600, letterSpacing: 0.3, background: isC ? "#1e293b" : "transparent", color: isC ? "#fff" : isA ? "#475569" : "#d1d5db" }}>
+            {MK[i]}
+            {isA && !isC && <div style={{ width: 4, height: 4, borderRadius: 2, background: "#94a3b8", margin: "2px auto 0" }} />}
+          </button>);
+        })}
+      </div>
+      {tab === "flow" && <FlowTab d={d} />}
+      {tab === "bill" && <BillTab d={d} histIdx={histIdx} />}
+      {tab === "savings" && <SavingsTab d={d} histIdx={histIdx} />}
+    </div>
+  );
+}
+
+
+// Mount
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(Report));
+  </script>
+</body>
+</html>
